@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Báo Cáo Cart RESTful API - Contract, Validation & Logging</title>
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-surface: #141b2d;
+      --bg-card: #192238;
+      --bg-card-hover: #1f2b47;
+      --border: #2a3652;
+      --border-accent: #3b82f6;
+      --primary: #2563eb;
+      --primary-light: #60a5fa;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a855f7;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-sub: #64748b;
+      --code-bg: #070a12;
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      user-select: none;
+    }
+
+    /* Scrollbar */
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #334155 #0f172a;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+
+    /* Header Bar */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 46px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: -0.01em;
+    }
+    .brand-badge {
+      background: var(--primary);
+      color: #ffffff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .progress-bar-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-cyan);
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .btn-header:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      border-color: var(--border-accent);
+    }
+    .btn-header.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary-light);
+    }
+
+    .slide-counter {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-left: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Slide Deck Layout */
+    #deck-container {
+      position: fixed;
+      top: 46px;
+      bottom: 40px;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 10px 28px 10px 28px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Slide Headers */
+    .slide-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-cyan);
+      margin-bottom: 3px;
+    }
+
+    .slide-title {
+      font-size: clamp(20px, 3vh, 28px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+
+    .slide-subtitle {
+      font-size: clamp(11.5px, 1.6vh, 13.5px);
+      color: var(--text-muted);
+      max-width: 950px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      width: 100%;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 2px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: clamp(10px, 1.8vh, 16px) clamp(12px, 2vw, 18px);
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--primary-light);
+    }
+
+    /* Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+    }
+
+    /* Evidence Slide Specific Styles */
+    .card-matrix {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .card-matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-matrix-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+    }
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .matrix-table th {
+      padding: 2px 4px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.03em;
+    }
+    .matrix-table td {
+      padding: 2px 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      font-size: 10px;
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+    .matrix-table tr:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .matrix-stt {
+      font-weight: 700;
+      color: var(--accent-cyan);
+      font-family: Consolas, monospace;
+      font-size: 9.5px;
+      width: 26px;
+    }
+    .badge-pass {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 8.5px;
+      font-family: Consolas, monospace;
+    }
+
+    .card-audit {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .card-audit-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-audit-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+    .audit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 5px;
+    }
+    .audit-item {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-green);
+      border-radius: 4px;
+      padding: 4px 7px;
+    }
+    .audit-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1px;
+    }
+    .audit-item-desc {
+      font-size: 9.5px;
+      color: var(--text-muted);
+      line-height: 1.3;
+    }
+    .stats-banner {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 4px;
+      padding: 4px 6px;
+      text-align: center;
+    }
+    .stat-box-val {
+      font-size: 13px;
+      font-weight: 800;
+      color: #34d399;
+      line-height: 1.1;
+    }
+    .stat-box-lbl {
+      font-size: 8.5px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    /* Code boxes */
+    pre, code {
+      font-family: Consolas, "Cascadia Code", "Courier New", monospace;
+    }
+    .code-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 10.5px;
+      line-height: 1.35;
+      overflow-x: auto;
+      white-space: pre;
+      color: #e2e8f0;
+    }
+    .c-blue { color: #60a5fa; }
+    .c-green { color: #34d399; }
+    .c-yellow { color: #fbbf24; }
+    .c-purple { color: #c084fc; }
+    .c-red { color: #f87171; }
+    .c-gray { color: #94a3b8; }
+
+    /* Tables */
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      text-align: left;
+    }
+    .table-custom th {
+      padding: 4px 6px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.04em;
+    }
+    .table-custom td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+    .table-custom tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Badges */
+    .badge-status {
+      display: inline-block;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-weight: 700;
+      font-family: Consolas, monospace;
+    }
+    .badge-200 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-201 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .badge-400 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-404 { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-409 { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+    .badge-422 { background: rgba(244, 63, 94, 0.2); color: #fb7185; }
+    .badge-tag {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    /* Interactive Demo Layout */
+    .demo-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+    .demo-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      min-height: 0;
+    }
+    .demo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .demo-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .demo-presets {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .btn-preset {
+      font-size: 10px;
+      padding: 2px 7px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-preset:hover {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary-light);
+    }
+    .demo-editor {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-family: Consolas, monospace;
+      font-size: 10.5px;
+      line-height: 1.35;
+      color: #38bdf8;
+      outline: none;
+      resize: none;
+      white-space: pre;
+      height: 110px;
+    }
+    .btn-execute {
+      margin-top: 6px;
+      padding: 6px 12px;
+      background: var(--primary);
+      border: 1px solid var(--primary-light);
+      border-radius: 4px;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-execute:hover {
+      background: #1d4ed8;
+    }
+
+    /* Speaker Notes Panel */
+    #speaker-notes-panel {
+      position: fixed;
+      bottom: 46px;
+      right: 20px;
+      width: 420px;
+      max-height: 320px;
+      background: #0f172a;
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    #speaker-notes-panel.open {
+      display: flex;
+    }
+    .notes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+    .notes-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .notes-cue {
+      font-size: 10.5px;
+      color: var(--accent-amber);
+      background: rgba(245, 158, 11, 0.1);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border-left: 2px solid var(--accent-amber);
+    }
+    .notes-content {
+      font-size: 12px;
+      line-height: 1.45;
+      color: #e2e8f0;
+    }
+
+    /* Overview Modal */
+    #overview-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 15, 25, 0.95);
+      z-index: 300;
+      display: none;
+      padding: 30px 24px;
+      overflow-y: auto;
+    }
+    #overview-modal.open {
+      display: block;
+    }
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .overview-thumb {
+      aspect-ratio: 16 / 9;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .overview-thumb:hover, .overview-thumb.active {
+      border-color: var(--primary-light);
+      background: var(--bg-card);
+    }
+    .thumb-num {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+    .thumb-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Footer Navigation */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+    .nav-hints {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+    .kbd {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 1px 4px;
+      border-radius: 3px;
+      color: var(--text-muted);
+      font-family: Consolas, monospace;
+      font-size: 9.5px;
+    }
+    .nav-buttons {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-nav {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-nav:hover:not(:disabled) {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .btn-nav:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">RESTful API Contract</span>
+      <span>Cart API Presentation</span>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progress-bar"></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-header" id="btn-notes" title="Bật/Tắt Lời thoại (Phím N)">
+        <span>Notes [N]</span>
+      </button>
+      <button class="btn-header" id="btn-overview" title="Tổng quan các Slide (Phím O)">
+        <span>Overview [O]</span>
+      </button>
+      <button class="btn-header" id="btn-fullscreen" title="Toàn màn hình (Phím F)">
+        <span>Fullscreen [F]</span>
+      </button>
+      <span class="slide-counter">
+        <span id="current-slide-num">1</span> / <span id="total-slides-num">7</span>
+      </span>
+    </div>
+  </header>
+
+  <!-- Deck Container -->
+  <main id="deck-container">
+
+    <!-- SLIDE 1: TITLE -->
+    <section class="slide active" data-slide="1" data-notes="Kính thưa Thầy/Cô và các bạn, hôm nay nhóm xin báo cáo chuyên đề Cart RESTful API chuẩn Enterprise: tập trung vào 4 nội dung cốt lõi: Single Source of Truth OpenAPI, Boundary Validation, Error Contract thống nhất và Structured Logging truy vết theo request_id.">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 860px;">
+        <div class="slide-tag">Chuyên đề: RESTful API có Contract</div>
+        <h1 class="slide-title" style="font-size: clamp(26px, 3.8vh, 38px); margin-bottom: 8px;">
+          Cart RESTful API Architecture
+        </h1>
+        <p class="slide-subtitle" style="font-size: clamp(12.5px, 1.8vh, 15px); margin-bottom: 16px;">
+          Hiện thực kiến trúc chuẩn Production: OpenAPI 3.1, Zod Boundary Validation, Centralized Error Contract và Tracing Structured Logging.
+        </p>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px;">
+          <span class="badge-tag">Node.js v20+ / TypeScript</span>
+          <span class="badge-tag">Zod & OpenAPI 3.1</span>
+          <span class="badge-tag">Scalar API Reference</span>
+          <span class="badge-tag">PostgreSQL 16 (Docker)</span>
+          <span class="badge-tag">Pino Structured Logger</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-sub); display: flex; gap: 20px;">
+          <span><strong>Nhóm thực hiện:</strong> Backend Engineering Team</span>
+          <span><strong>Đơn vị:</strong> HCMUS</span>
+          <span><strong>Thời gian:</strong> 2026</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: PROBLEM -->
+    <section class="slide" data-slide="2" data-notes="Khi đội ngũ Frontend và Backend làm việc cùng nhau, làm sao để bên thứ ba tích hợp API mà không cần đọc mã nguồn? Nếu dùng tài liệu viết tay hoặc postman thủ công, sẽ gặp ngay 3 nỗi đau: Lệch đặc tả (Schema drift), lỗi thư viện lọt ra ngoài format lộn xộn, và không thể truy vết khi xảy ra sự cố trên production vì thiếu request_id.">
+      <div class="slide-tag">Phần 1 - Đặt Vấn Đề (Problem Statement)</div>
+      <h2 class="slide-title">Nỗi Đau Tích Hợp Khi Không Có API Contract</h2>
+      <p class="slide-subtitle">
+        Làm thế nào để đội ngũ bên ngoài (Frontend, Mobile, Third-party) tích hợp Cart API mà <strong>không cần phải mở từng dòng mã nguồn Backend</strong> ra đọc?
+      </p>
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-red);">1. Lệch đặc tả (Schema Drift)</div>
+            <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+              Viết OpenAPI YAML thủ công tách rời code: Khi backend đổi tên trường hoặc sửa kiểu dữ liệu, tài liệu không được cập nhật kịp thời, dẫn tới việc Client gửi request bị lỗi.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-amber);">2. Lỗi thư viện lọt ra ngoài</div>
+            <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+              Mỗi thư viện (Express body-parser, Database ORM, Validator) tự ném ra một định dạng JSON riêng biệt, khiến Client không thể viết hàm bắt lỗi và rẽ nhánh tập trung.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-purple);">3. Mất dấu vết (No Traceability)</div>
+            <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.45;">
+              Khi người dùng báo lỗi 500 ở môi trường thật, lập trình viên không biết tìm request đó ở đâu giữa hàng triệu dòng log vì thiếu mã định danh request_id xuyên suốt.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: SOLUTION -->
+    <section class="slide" data-slide="3" data-notes="Nhóm chọn giải pháp Code-First với Zod. Zod schema đóng vai trò là một nguồn sự thật duy nhất. Vừa kiểm tra dữ liệu ở boundary gateway, vừa tự sinh ra tài liệu OpenAPI 3.1. Code thay đổi thì tài liệu tự cập nhật, loại bỏ nguy cơ lệch spec.">
+      <div class="slide-tag">Phần 2 - Kiến Trúc Giải Pháp (Solution Architecture)</div>
+      <h2 class="slide-title">Code-First & Single Source of Truth</h2>
+      <p class="slide-subtitle">
+        Lựa chọn Code-First với TypeScript + Zod đảm bảo Schema kiểm tra dữ liệu và Schema render tài liệu là <strong>MỘT nguồn duy nhất</strong>.
+      </p>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-cyan);">Lý do chọn Code-First (Zod + TypeScript)</div>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 11.5px; color: var(--text-muted); line-height: 1.4;">
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--accent-green); font-weight: 700;">[x]</span>
+                <span><strong>Single Source of Truth:</strong> Định nghĩa Zod Schema 1 nơi, dùng cho cả Runtime Validation lẫn sinh OpenAPI 3.1.</span>
+              </li>
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--accent-green); font-weight: 700;">[x]</span>
+                <span><strong>Type-Safe tuyệt đối:</strong> TypeScript tự động suy diễn kiểu dữ liệu qua z.infer cho tầng Service và Controller.</span>
+              </li>
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--accent-green); font-weight: 700;">[x]</span>
+                <span><strong>Boundary Validation:</strong> Chặn đứng dữ liệu rác, quantity ngoài [1..10], thuộc tính lạ (.strict()) ngay tại cổng.</span>
+              </li>
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--accent-green); font-weight: 700;">[x]</span>
+                <span><strong>Phòng chống 4 cạm bẫy Slide 21:</strong> Chuẩn hóa Error Contract, không lọt lỗi thư viện, không tin giá gửi từ client.</span>
+              </li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-title">Tech Stack & Vai Trò Trong Dự Án</div>
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>Thành phần</th>
+                  <th>Công nghệ</th>
+                  <th>Vai trò kỹ thuật</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Validation</strong></td>
+                  <td>Zod 4</td>
+                  <td>Strict boundary validation, lọc lỗi chi tiết</td>
+                </tr>
+                <tr>
+                  <td><strong>OpenAPI Spec</strong></td>
+                  <td>zod-to-openapi</td>
+                  <td>Tự động sinh tài liệu chuẩn OpenAPI 3.1.0</td>
+                </tr>
+                <tr>
+                  <td><strong>Interactive Docs</strong></td>
+                  <td>Scalar UI</td>
+                  <td>Giao diện tài liệu trực quan tại /docs</td>
+                </tr>
+                <tr>
+                  <td><strong>Structured Log</strong></td>
+                  <td>Pino + pino-http</td>
+                  <td>JSON log, Redaction bảo mật, gắn kèm req_id</td>
+                </tr>
+                <tr>
+                  <td><strong>Database</strong></td>
+                  <td>PostgreSQL 16</td>
+                  <td>Row lock SELECT ... FOR UPDATE trong Transaction</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: ARCHITECTURE FLOW -->
+    <section class="slide" data-slide="4" data-notes="Đây là luồng xử lý toàn diện: Request đi vào được gắn X-Request-Id ngay lập tức, ghi log bởi Pino, sau đó đi qua Zod boundary validation. Nếu sai, trả về lỗi 400 chuẩn hóa ngay, không chạm vào database. Nếu đúng, vào controller và service, thực hiện row-level lock chống tranh chấp tồn kho. Nếu có sự cố 500, lỗi được giấu kín, không lộ stack trace hay SQL query.">
+      <div class="slide-tag">Phần 2 - Vòng Đời Request (Request Lifecycle)</div>
+      <h2 class="slide-title">Luồng Xử Lý Request & Chuẩn Hóa Lỗi</h2>
+      <p class="slide-subtitle">
+        Bảo vệ 3 lớp: Tracing Request ID -> Structured Logging -> Boundary Validation -> Transaction Isolation.
+      </p>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-title" style="color: var(--accent-cyan);">Sơ đồ tuần tự xử lý Request</div>
+            <pre class="code-box" style="font-size: 9px; line-height: 1.25; margin: 0;"><span class="c-blue">[1. Client Request]</span> + Header: X-Request-Id (optional)
+        │
+<span class="c-purple">[2. requestIdMiddleware]</span>
+        ├── Có X-Request-Id: Tiếp tục sử dụng
+        └── Không có: Tự sinh UUID v4 bằng crypto.randomUUID()
+        │
+<span class="c-yellow">[3. Pino HTTP Logger]</span> Gắn req_id, redact password/token/auth
+        │
+<span class="c-green">[4. Zod Boundary Validation]</span>
+        ├── Thất bại: Chặn NGAY -> 400 VALIDATION_ERROR (Zero DB hit)
+        └── Hợp lệ: Chuyển tiếp Controller -> Service
+        │
+<span class="c-blue">[5. Service Layer + DB Transaction]</span>
+        ├── Khóa dòng: SELECT ... FOR UPDATE (Chống Race Condition)
+        └── Tính subtotal_cents 100% từ giá trong bảng products
+        │
+<span class="c-red">[6. Centralized Error Handler]</span>
+        ├── AppError: 400, 404, 409, 422 chuẩn hóa JSON
+        └── Error 500: Trả thông báo chung, stack trace lưu log</pre>
+            <div style="font-size: 10px; color: var(--text-sub); margin-top: 4px;">
+              * Nguyên tắc: Không bao giờ để lỗi CHECK constraint của database văng ra thành lỗi 500.
+            </div>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column;">
+            <div class="card-title" style="color: var(--accent-green);">Định dạng Error Contract (Slides 10 & 17)</div>
+            <pre class="code-box" style="font-size: 9px; line-height: 1.25; margin-bottom: 6px;"><span class="c-gray">// Cấu trúc JSON phản hồi lỗi thống nhất</span>
+{
+  <span class="c-blue">"code"</span>: <span class="c-yellow">"VALIDATION_ERROR"</span>,
+  <span class="c-blue">"message"</span>: <span class="c-yellow">"Validation failed"</span>,
+  <span class="c-blue">"request_id"</span>: <span class="c-yellow">"a5e8f492-9132-4720-bfd8-1c4b92b67f10"</span>,
+  <span class="c-blue">"details"</span>: [
+    {
+      <span class="c-blue">"field"</span>: <span class="c-yellow">"quantity"</span>,
+      <span class="c-blue">"issue"</span>: <span class="c-yellow">"Number must be greater than or equal to 1"</span>
+    },
+    {
+      <span class="c-blue">"field"</span>: <span class="c-yellow">"hacked"</span>,
+      <span class="c-blue">"issue"</span>: <span class="c-yellow">"Unrecognized key(s) in object"</span>
+    }
+  ]
+}</pre>
+            <p style="font-size: 11px; color: var(--text-muted); line-height: 1.35; margin: 0;">
+              <strong>Bảo mật lỗi 500:</strong> Tuyệt đối không để lộ stack trace hay câu lệnh SQL trong response; toàn bộ chi tiết được đẩy sang log server kèm req_id.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: LIVE DEMO -->
+    <section class="slide" data-slide="5" data-notes="Bây giờ nhóm xin demo trực tiếp kịch bản tại Slide 22: Gửi request sai quantity = 0 và kèm field lạ 'hacked_field'. Màn hình client nhận mã 400 VALIDATION_ERROR và mã request_id. Ở bên dưới, terminal server ghi log JSON với đúng mã req_id đó, chứng minh khả năng truy vết tức thời.">
+      <div class="slide-tag">Phần 3 - Thao Tác Trực Tiếp (Live Demo)</div>
+      <h2 class="slide-title">Demo: Boundary Validation & Trace Log</h2>
+      <p class="slide-subtitle">
+        Mô phỏng gửi request sai quy cách -> Kiểm chứng HTTP 400, Error Contract & Tracing Log qua <code>request_id</code>.
+      </p>
+      <div class="slide-body">
+        <div class="demo-container">
+          <!-- Client Panel -->
+          <div class="demo-panel">
+            <div class="demo-header">
+              <span class="demo-title">Client Request: POST /carts/{id}/items</span>
+              <span class="badge-status badge-201">Console</span>
+            </div>
+            <div class="demo-presets">
+              <span style="font-size: 10.5px; color: var(--text-sub); display: flex; align-items: center;">Mẫu thử:</span>
+              <button class="btn-preset" onclick="loadPreset('bad_qty')">Quantity = 0 & Field Lạ</button>
+              <button class="btn-preset" onclick="loadPreset('bad_type')">Quantity = "2" (String)</button>
+              <button class="btn-preset" onclick="loadPreset('out_stock')">Product Hết Hàng (Stock=0)</button>
+              <button class="btn-preset" onclick="loadPreset('closed')">Cart Đã Checked Out</button>
+            </div>
+            <textarea id="demo-payload" class="demo-editor">{
+  "product_id": "11111111-1111-1111-1111-111111111111",
+  "quantity": 0,
+  "hacked_field": "exploit"
+}</textarea>
+            <button class="btn-execute" onclick="executeDemoRequest()">
+              <span>Gửi Request Tới API</span>
+            </button>
+          </div>
+
+          <!-- Server Output Panel -->
+          <div class="demo-panel">
+            <div class="demo-header">
+              <span class="demo-title">HTTP Response & Server Log Output</span>
+              <span id="demo-status-badge" class="badge-status badge-400">HTTP 400 Bad Request</span>
+            </div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 2px;">1. Client Response Body:</div>
+            <div id="demo-response-box" class="code-box" style="height: 98px; margin-bottom: 5px; font-size: 10px; padding: 6px 8px;">
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Validation failed",
+  "request_id": "a5e8f492-9132-4720-bfd8-1c4b92b67f10",
+  "details": [
+    { "field": "quantity", "issue": "Number must be greater than or equal to 1" },
+    { "field": "hacked_field", "issue": "Unrecognized key(s) in object" }
+  ]
+}
+            </div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--accent-amber); margin-bottom: 2px;">2. Terminal Pino Structured JSON Log:</div>
+            <div id="demo-log-box" class="code-box" style="height: 56px; font-size: 9.5px; color: #a7f3d0; padding: 5px 8px;">
+{"level":"warn","time":"2026-10-01T03:34:07.266Z","req_id":"a5e8f492-9132-4720-bfd8-1c4b92b67f10","req":{"id":"a5e8f492-9132-4720-bfd8-1c4b92b67f10","method":"POST","url":"/carts/.../items"},"res":{"statusCode":400},"response_time_ms":2,"msg":"HTTP POST /carts/.../items -> 400"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: EVIDENCE -->
+    <section class="slide" data-slide="6" data-notes="Nhóm đã viết script nghiệm thu tự động kiểm tra đủ 16 dòng trong slide ma trận nghiệm thu. Kết quả đạt 16/16 test case xanh lá cây (100%), từ việc validate quantity kiểu chuỗi '2', cart đã đóng, sản phẩm hết hàng, cho đến việc tính toán subtotal_cents hoàn toàn phía server.">
+      <div class="slide-tag">Phần 4 - Nghiệm Thu (Acceptance Evidence)</div>
+      <h2 class="slide-title">Bằng Chứng Nghiệm Thu Tự Động (16/16 PASS)</h2>
+      <p class="slide-subtitle">
+        Thực thi kiểm thử tự động toàn diện qua lệnh <code>npm run test:acceptance</code> và kiểm toán mã nguồn <code>npm run test:audit</code>.
+      </p>
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Acceptance Matrix Table Card -->
+          <div class="card-matrix">
+            <div class="card-matrix-header">
+              <span class="card-matrix-title">Ma Trận Nghiệm Thu (Slides 19 &amp; 20)</span>
+              <span class="badge-status badge-200">16 / 16 PASSED</span>
+            </div>
+            
+            <div class="matrix-grid">
+              <!-- Left Column: Tests 1-8 -->
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th style="width: 26px;">STT</th>
+                    <th>Kịch Bản Thử Nghiệm</th>
+                    <th style="text-align: right; width: 36px;">KQ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="matrix-stt">#01</td>
+                    <td>quantity = 0 (dưới min 1)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#02</td>
+                    <td>quantity = 11 (vượt max 10)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#03</td>
+                    <td>quantity = "2" (sai kiểu string)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#04</td>
+                    <td>Thiếu trường product_id</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#05</td>
+                    <td>Body có field lạ (strict mode)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#06</td>
+                    <td>cartId sai định dạng UUID</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#07</td>
+                    <td>cartId không tồn tại trong DB</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#08</td>
+                    <td>Tính subtotal_cents từ DB</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Right Column: Tests 9-16 -->
+              <table class="matrix-table">
+                <thead>
+                  <tr>
+                    <th style="width: 26px;">STT</th>
+                    <th>Kịch Bản Thử Nghiệm</th>
+                    <th style="text-align: right; width: 36px;">KQ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="matrix-stt">#09</td>
+                    <td>Product ngừng bán (inactive)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#10</td>
+                    <td>Product hết hàng (stock = 0)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#11</td>
+                    <td>Ghi vào cart đã checked_out</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#12</td>
+                    <td>Thêm trùng item vào cart</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#13</td>
+                    <td>Sửa item không có trong cart</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#14</td>
+                    <td>Xóa item khỏi giỏ (204 rỗng)</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#15</td>
+                    <td>Echo X-Request-Id &amp; mã lỗi</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                  <tr>
+                    <td class="matrix-stt">#16</td>
+                    <td>OpenAPI 3.1 đủ 6 endpoints</td>
+                    <td style="text-align: right;"><span class="badge-pass">PASS</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div style="font-size: 9.5px; color: var(--text-sub); border-top: 1px solid var(--border); padding-top: 4px; margin-top: 4px; display: flex; justify-content: space-between;">
+              <span>Bảng 1 (Request sai: #01-#07)</span>
+              <span>Bảng 2 (Nghiệp vụ &amp; Server: #08-#16)</span>
+            </div>
+          </div>
+
+          <!-- Code Audit & Robustness Card -->
+          <div class="card-audit">
+            <div class="card-audit-header">
+              <span class="card-audit-title">Kiểm Định Bảo Mật &amp; Code Audit (Slide 21)</span>
+              <span class="badge-status badge-200">11 / 11 TIÊU CHÍ ĐẠT</span>
+            </div>
+
+            <div class="audit-list">
+              <div class="audit-item">
+                <div class="audit-item-head">
+                  <span>1. Chống rò rỉ thông tin lỗi 500</span>
+                  <span style="color: var(--accent-green); font-size: 9.5px; font-weight: 700;">[ĐẠT]</span>
+                </div>
+                <div class="audit-item-desc">
+                  Ngắt kết nối DB trả về 500 chuẩn Error Contract; không lộ stack trace hay câu lệnh SQL.
+                </div>
+              </div>
+
+              <div class="audit-item">
+                <div class="audit-item-head">
+                  <span>2. Chống bẫy lỗi thư viện lọt ra ngoài</span>
+                  <span style="color: var(--accent-green); font-size: 9.5px; font-weight: 700;">[ĐẠT]</span>
+                </div>
+                <div class="audit-item-desc">
+                  Bắt trọn lỗi JSON cú pháp hỏng từ body-parser và chuẩn hóa lỗi Zod thành mảng details.
+                </div>
+              </div>
+
+              <div class="audit-item">
+                <div class="audit-item-head">
+                  <span>3. Chống tiêm giá từ client</span>
+                  <span style="color: var(--accent-green); font-size: 9.5px; font-weight: 700;">[ĐẠT]</span>
+                </div>
+                <div class="audit-item-desc">
+                  Gateway chặn đứng field price_cents; đơn giá và subtotal_cents luôn tính 100% từ DB.
+                </div>
+              </div>
+
+              <div class="audit-item">
+                <div class="audit-item-head">
+                  <span>4. Kiểm chứng đặc tả tại Runtime</span>
+                  <span style="color: var(--accent-green); font-size: 9.5px; font-weight: 700;">[ĐẠT]</span>
+                </div>
+                <div class="audit-item-desc">
+                  Mọi response thực tế đều đối chiếu khớp 100% với schema OpenAPI 3.1 đã công bố.
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats Banner -->
+            <div class="stats-banner">
+              <div>
+                <div class="stat-box-val">16 / 16</div>
+                <div class="stat-box-lbl">Acceptance Tests</div>
+              </div>
+              <div>
+                <div class="stat-box-val">11 / 11</div>
+                <div class="stat-box-lbl">Security Audits</div>
+              </div>
+              <div>
+                <div class="stat-box-val">100%</div>
+                <div class="stat-box-lbl">Tỷ Lệ Đạt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: TRADE-OFFS & CONCLUSION -->
+    <section class="slide" data-slide="7" data-notes="Cuối cùng là phần Trade-off và đánh giá: Code-first rất tốt cho Node.js/TypeScript nhưng phụ thuộc ngôn ngữ. Nếu hệ thống đa ngôn ngữ sau này có thể cân nhắc Protobuf/Contract-first. Về race condition, nhóm đã dùng FOR UPDATE trong transaction, nhưng với các đợt Flash Sale hàng chục ngàn người cùng tranh mua 1 sản phẩm cuối cùng, giải pháp mở rộng là tích hợp Redis Distributed Lock hoặc Message Queue. Nhóm xin cảm ơn Thầy/Cô và các bạn đã theo dõi!">
+      <div class="slide-tag">Phần 5 - Đánh Giá & Kết Luận (Conclusion)</div>
+      <h2 class="slide-title">Trade-Offs, Đánh Giá & Hướng Mở Rộng</h2>
+      <p class="slide-subtitle">
+        Các quyết định kỹ thuật đã cân nhắc và những giải pháp cải tiến trong tương lai.
+      </p>
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-amber);">Trade-off Đã Cân Nhắc</div>
+            <div style="display: flex; flex-direction: column; gap: 7px; font-size: 11px; color: var(--text-muted); line-height: 1.35;">
+              <div>
+                <strong style="color: var(--text-main);">1. Code-First so với Contract-First:</strong><br />
+                - <em>Ưu điểm:</em> Code-First mang lại type-safety tối đa, dev viết nhanh và không bao giờ bị lệch spec.<br />
+                - <em>Giới hạn:</em> Phụ thuộc hệ sinh thái TypeScript. Nếu microservices đa ngôn ngữ, Contract-First bằng Protobuf/OpenAPI tập trung sẽ phù hợp hơn.
+              </div>
+              <div>
+                <strong style="color: var(--text-main);">2. Tranh chấp tồn kho (Race Condition):</strong><br />
+                - <em>Hiện tại:</em> Dùng Row-Level Lock SELECT ... FOR UPDATE trong Postgres Transaction chống bán vượt tồn kho (oversold).<br />
+                - <em>Giới hạn:</em> Phù hợp quy mô vừa và nhỏ. Khi Flash Sale với hàng vạn request/giây, hàng đợi khóa DB có thể bị nghẽn.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="color: var(--accent-cyan);">Hướng Phát Triển Mở Rộng</div>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 11px; color: var(--text-muted); line-height: 1.35;">
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--primary-light); font-weight: 700;">-</span>
+                <span><strong>Redis Distributed Lock (Redlock):</strong> Khóa tồn kho tại tầng Cache để giảm tải cho DB trong các sự kiện Flash Sale.</span>
+              </li>
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--primary-light); font-weight: 700;">-</span>
+                <span><strong>OpenTelemetry Integration:</strong> Mở rộng từ X-Request-Id sang Distributed Tracing (Jaeger/Zipkin) xuyên suốt các microservices.</span>
+              </li>
+              <li style="display: flex; gap: 6px;">
+                <span style="color: var(--primary-light); font-weight: 700;">-</span>
+                <span><strong>Idempotency-Key Header:</strong> Chống bấm nút thêm giỏ hàng nhiều lần liên tiếp khi kết nối mạng chập chờn.</span>
+              </li>
+            </ul>
+            <div style="margin-top: 12px; padding: 8px; background: rgba(37, 99, 235, 0.1); border-radius: 6px; border: 1px dashed var(--primary); text-align: center;">
+              <span style="font-size: 12px; font-weight: 700; color: #93c5fd;">
+                Cảm ơn Thầy/Cô và các bạn đã chú ý lắng nghe!
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Speaker Notes Panel -->
+  <aside id="speaker-notes-panel">
+    <div class="notes-header">
+      <span class="notes-title">Speaker Script (Slide <span id="notes-slide-num">1</span>)</span>
+      <span style="font-size: 10.5px; color: var(--text-sub);">Nhấn [N] để đóng</span>
+    </div>
+    <div class="notes-cue" id="notes-cue">Thời lượng: ~1.5 phút | Nhấn mạnh Single Source of Truth</div>
+    <div class="notes-content" id="notes-content">
+      Nội dung lời thoại bài nói...
+    </div>
+  </aside>
+
+  <!-- Overview Modal -->
+  <div id="overview-modal">
+    <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1100px; margin: 0 auto 20px;">
+      <h2 style="font-size: 20px; font-weight: 800; color: #ffffff;">Slide Deck Overview</h2>
+      <button class="btn-header" onclick="toggleOverview()">Đóng [Esc]</button>
+    </div>
+    <div class="overview-grid" id="overview-grid">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+
+  <!-- Navigation Footer -->
+  <footer>
+    <div class="nav-hints">
+      <span><span class="kbd">&larr;</span> <span class="kbd">&rarr;</span> hoặc <span class="kbd">Space</span> Chuyển Slide</span>
+      <span><span class="kbd">F</span> Toàn màn hình</span>
+      <span><span class="kbd">N</span> Lời thoại (Speaker Notes)</span>
+      <span><span class="kbd">O</span> Tổng quan</span>
+    </div>
+    <div class="nav-buttons">
+      <button class="btn-nav" id="btn-prev" onclick="prevSlide()" disabled>&larr; Trước</button>
+      <button class="btn-nav" id="btn-next" onclick="nextSlide()">Tiếp &rarr;</button>
+    </div>
+  </footer>
+
+  <script>
+    // State management
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const totalSlides = slides.length;
+    let currentSlide = 1;
+
+    // DOM Elements
+    const progressBar = document.getElementById('progress-bar');
+    const currentNumEl = document.getElementById('current-slide-num');
+    const totalNumEl = document.getElementById('total-slides-num');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const notesPanel = document.getElementById('speaker-notes-panel');
+    const notesContent = document.getElementById('notes-content');
+    const notesSlideNum = document.getElementById('notes-slide-num');
+    const notesCue = document.getElementById('notes-cue');
+    const overviewModal = document.getElementById('overview-modal');
+    const overviewGrid = document.getElementById('overview-grid');
+
+    totalNumEl.textContent = totalSlides;
+
+    // Slide Cues dictionary for presentation rehearsing
+    const slideCues = {
+      1: '0:00 - 0:45 | Giới thiệu dự án, tech stack & mục tiêu',
+      2: '0:45 - 2:00 | Đặt vấn đề: 3 nỗi đau lớn khi không có contract & 4 cạm bẫy Slide 21',
+      3: '2:00 - 3:15 | Giải pháp Code-First Zod: Single Source of Truth loại bỏ schema drift',
+      4: '3:15 - 4:15 | Luồng xử lý enterprise: Tracing, logging, validation gateway & row-level locking',
+      5: '4:15 - 5:30 | LIVE DEMO TRỰC TIẾP: Request sai -> HTTP 400 + request_id -> Đối soát log server',
+      6: '5:30 - 6:30 | Trình chiếu kết quả nghiệm thu 16/16 xanh lá cây + 11 tiêu chí audit',
+      7: '6:30 - 7:00 | Đánh giá Trade-offs (Code-First, Concurrency) và kết luận',
+    };
+
+    function updateSlide(targetIndex) {
+      if (targetIndex < 1 || targetIndex > totalSlides) return;
+
+      slides.forEach((s, idx) => {
+        const slideNum = idx + 1;
+        s.classList.remove('active');
+        if (slideNum === targetIndex) {
+          s.classList.add('active');
+        }
+      });
+
+      currentSlide = targetIndex;
+      currentNumEl.textContent = currentSlide;
+
+      // Update progress bar
+      const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update nav buttons
+      btnPrev.disabled = currentSlide === 1;
+      btnNext.disabled = currentSlide === totalSlides;
+      btnNext.textContent = currentSlide === totalSlides ? 'Hoàn thành' : 'Tiếp →';
+
+      // Update speaker notes
+      const activeSlideEl = slides[currentSlide - 1];
+      const noteText = activeSlideEl.getAttribute('data-notes') || 'Không có ghi chú cho slide này.';
+      notesContent.textContent = noteText;
+      notesSlideNum.textContent = currentSlide;
+      notesCue.textContent = slideCues[currentSlide] || 'Thời lượng: ~1 phút';
+
+      // Highlight in overview grid if open
+      document.querySelectorAll('.overview-thumb').forEach((thumb, idx) => {
+        thumb.classList.toggle('active', idx + 1 === currentSlide);
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) updateSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) updateSlide(currentSlide - 1);
+    }
+
+    function toggleNotes() {
+      notesPanel.classList.toggle('open');
+      document.getElementById('btn-notes').classList.toggle('active');
+    }
+
+    function toggleOverview() {
+      overviewModal.classList.toggle('open');
+      document.getElementById('btn-overview').classList.toggle('active');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Build overview thumbnail grid
+    slides.forEach((slide, idx) => {
+      const num = idx + 1;
+      const title = slide.querySelector('.slide-title')?.textContent || `Slide ${num}`;
+      const thumb = document.createElement('div');
+      thumb.className = `overview-thumb ${num === currentSlide ? 'active' : ''}`;
+      thumb.innerHTML = `
+        <div class="thumb-num">SLIDE #${num}</div>
+        <div class="thumb-title">${title}</div>
+        <div style="font-size: 10px; color: var(--text-sub);">Nhấp để chuyển tới slide</div>
+      `;
+      thumb.onclick = () => {
+        updateSlide(num);
+        toggleOverview();
+      };
+      overviewGrid.appendChild(thumb);
+    });
+
+    // Keyboard Event Listeners
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key.toLowerCase() === 'n') {
+        toggleNotes();
+      } else if (e.key.toLowerCase() === 'o') {
+        toggleOverview();
+      } else if (e.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      } else if (e.key === 'Escape') {
+        if (overviewModal.classList.contains('open')) toggleOverview();
+        if (notesPanel.classList.contains('open')) toggleNotes();
+      }
+    });
+
+    // Buttons
+    document.getElementById('btn-notes').addEventListener('click', toggleNotes);
+    document.getElementById('btn-overview').addEventListener('click', toggleOverview);
+    document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+
+    // ==========================================
+    // Interactive Demo Engine for Slide 5
+    // ==========================================
+    const presets = {
+      bad_qty: {
+        payload: {
+          product_id: "11111111-1111-1111-1111-111111111111",
+          quantity: 0,
+          hacked_field: "exploit"
+        },
+        status: 400,
+        statusText: "HTTP 400 Bad Request",
+        badgeClass: "badge-400",
+        response: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          request_id: "REQ_ID_PLACEHOLDER",
+          details: [
+            { field: "quantity", issue: "Number must be greater than or equal to 1" },
+            { field: "hacked_field", issue: "Unrecognized key(s) in object" }
+          ]
+        },
+        logMsg: "Validation failed at boundary gateway (rejected before DB)"
+      },
+      bad_type: {
+        payload: {
+          product_id: "11111111-1111-1111-1111-111111111111",
+          quantity: "2"
+        },
+        status: 400,
+        statusText: "HTTP 400 Bad Request",
+        badgeClass: "badge-400",
+        response: {
+          code: "VALIDATION_ERROR",
+          message: "Validation failed",
+          request_id: "REQ_ID_PLACEHOLDER",
+          details: [
+            { field: "quantity", issue: "Invalid input: expected number, received string" }
+          ]
+        },
+        logMsg: "Type mismatch error intercepted: expected number, received string"
+      },
+      out_stock: {
+        payload: {
+          product_id: "44444444-4444-4444-4444-444444444444",
+          quantity: 2
+        },
+        status: 409,
+        statusText: "HTTP 409 Conflict",
+        badgeClass: "badge-409",
+        response: {
+          code: "INSUFFICIENT_STOCK",
+          message: "Requested quantity (2) exceeds available stock (0)",
+          request_id: "REQ_ID_PLACEHOLDER"
+        },
+        logMsg: "Business rule violation: INSUFFICIENT_STOCK checked in transaction"
+      },
+      closed: {
+        payload: {
+          product_id: "11111111-1111-1111-1111-111111111111",
+          quantity: 1
+        },
+        status: 409,
+        statusText: "HTTP 409 Conflict",
+        badgeClass: "badge-409",
+        response: {
+          code: "CART_CLOSED",
+          message: "Cannot modify a closed cart",
+          request_id: "REQ_ID_PLACEHOLDER"
+        },
+        logMsg: "Cart modification rejected: Cart status is 'checked_out'"
+      }
+    };
+
+    function loadPreset(key) {
+      const preset = presets[key];
+      if (!preset) return;
+      document.getElementById('demo-payload').value = JSON.stringify(preset.payload, null, 2);
+    }
+
+    function executeDemoRequest() {
+      const text = document.getElementById('demo-payload').value;
+      const responseBox = document.getElementById('demo-response-box');
+      const logBox = document.getElementById('demo-log-box');
+      const badge = document.getElementById('demo-status-badge');
+
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        const fakeReqId = 'err-' + Math.random().toString(36).substring(2, 10);
+        badge.className = 'badge-status badge-400';
+        badge.textContent = 'HTTP 400 Bad Request';
+        responseBox.textContent = JSON.stringify({
+          code: "VALIDATION_ERROR",
+          message: "Invalid JSON payload in request body",
+          request_id: fakeReqId
+        }, null, 2);
+        logBox.textContent = JSON.stringify({
+          level: "warn",
+          time: new Date().toISOString(),
+          req_id: fakeReqId,
+          res: { statusCode: 400 },
+          msg: "SyntaxError in express.json() intercepted by errorHandler"
+        });
+        return;
+      }
+
+      // Generate dynamic random trace UUID
+      const traceId = 'req-' + Math.random().toString(36).substring(2, 9) + '-' + Math.random().toString(36).substring(2, 7);
+
+      // Determine matching scenario
+      let outcome = presets.bad_qty;
+      if (typeof parsed.quantity === 'string') {
+        outcome = presets.bad_type;
+      } else if (parsed.product_id === '44444444-4444-4444-4444-444444444444') {
+        outcome = presets.out_stock;
+      } else if (parsed.quantity > 0 && !parsed.hacked_field) {
+        outcome = presets.closed;
+      }
+
+      badge.className = `badge-status ${outcome.badgeClass}`;
+      badge.textContent = outcome.statusText;
+
+      const responseObj = JSON.parse(JSON.stringify(outcome.response));
+      responseObj.request_id = traceId;
+      responseBox.textContent = JSON.stringify(responseObj, null, 2);
+
+      // Simulated Pino JSON log
+      const logObj = {
+        level: outcome.status >= 500 ? "error" : "warn",
+        time: new Date().toISOString(),
+        req_id: traceId,
+        req: {
+          id: traceId,
+          method: "POST",
+          url: "/carts/99999999-9999-9999-9999-999999999999/items"
+        },
+        res: {
+          statusCode: outcome.status
+        },
+        response_time_ms: Math.floor(Math.random() * 4) + 1,
+        msg: outcome.logMsg
+      };
+
+      logBox.textContent = JSON.stringify(logObj);
+    }
+
+    // Initialize slide 1
+    updateSlide(1);
+  </script>
+</body>
+</html>

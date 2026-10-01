@@ -1,0 +1,47 @@
+{
+  "name": "cart-api",
+  "version": "1.0.0",
+  "description": "Production-ready Cart RESTful API with Contract, OpenAPI, Validation, and Structured Logging",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:seed": "tsx src/db/seeds/seed.ts",
+    "db:reset": "tsx src/db/reset.ts",
+    "test:acceptance": "tsx scripts/verify-matrix.ts",
+    "test:audit": "tsx scripts/verify-audit.ts"
+  },
+  "keywords": [
+    "nodejs",
+    "typescript",
+    "express",
+    "postgresql",
+    "kysely",
+    "restful-api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "@scalar/express-api-reference": "^0.10.25",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "kysely": "^0.27.5",
+    "pg": "^8.13.3",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.17.24",
+    "@types/pg": "^8.11.11",
+    "@types/pino-http": "^5.8.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
